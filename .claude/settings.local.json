@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/HP/Desktop/ASEDA/**)",
+      "Bash(npx create-next-app@latest aseda-farm --typescript --tailwind --app --no-git --no-eslint --no-src-dir --import-alias \"@/*\")",
+      "Bash(grep -E \"^\\(prisma|next-auth|recharts|bcryptjs\\)$\")",
+      "Bash(npm list *)"
+    ]
+  }
+}
