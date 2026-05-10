@@ -4,7 +4,21 @@
       "Read(//c/Users/HP/Desktop/ASEDA/**)",
       "Bash(npx create-next-app@latest aseda-farm --typescript --tailwind --app --no-git --no-eslint --no-src-dir --import-alias \"@/*\")",
       "Bash(grep -E \"^\\(prisma|next-auth|recharts|bcryptjs\\)$\")",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/prisma\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/lib\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/components/ui\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/components/dashboard\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/components/tasks\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/app/\\(auth\\)/login\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/app/\\(auth\\)/register\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/app/\\(dashboard\\)/dashboard\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/app/\\(dashboard\\)/batches/new\")",
+      "Bash(mkdir -p \"C:/Users/HP/Desktop/ASEDA/aseda-farm/app/\\(dashboard\\)/batches/[id]\")",
+      "Bash(npx prisma *)",
+      "Bash(npx @nestjs/cli@latest new aseda-farm-api --package-manager npm --skip-git --language TS)",
+      "Bash(npm uninstall *)",
+      "Bash(npx nest *)"
     ]
   }
 }
