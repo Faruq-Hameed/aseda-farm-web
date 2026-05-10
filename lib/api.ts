@@ -1,5 +1,9 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
+if (typeof window !== "undefined") {
+  console.log("API_URL configured as:", API_URL);
+}
+
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("aseda_token");
@@ -13,25 +17,34 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
+  const url = `${API_URL}${path}`;
+  console.log(`Making ${options.method || "GET"} request to:`, url);
+  console.log("Headers:", headers);
+  if (options.body) console.log("Body:", options.body);
+
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, { ...options, headers });
-  } catch {
+    res = await fetch(url, { ...options, headers });
+    console.log(`Response status: ${res.status}`);
+  } catch (error) {
+    console.error("Fetch error:", error);
     throw new Error("Cannot reach the server. Make sure the API is running.");
-  }
-
-  if (res.status === 401) {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("aseda_token");
-      localStorage.removeItem("aseda_user");
-      window.location.href = "/login";
-    }
-    throw new Error("Unauthorized");
   }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || "Request failed");
+    console.error("API error:", res.status, err);
+
+    if (res.status === 401) {
+      console.error("Backend rejected login. Response:", err);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("aseda_token");
+        localStorage.removeItem("aseda_user");
+      }
+    }
+    throw new Error(
+      err.message || `API request failed with status ${res.status}`,
+    );
   }
 
   return res.json();
@@ -91,9 +104,15 @@ export const api = {
   // Batches
   getBatches: () => request<any[]>("/batches"),
   getBatch: (id: string) => request<any>(`/batches/${id}`),
-  createBatch: (data: any) => request<any>("/batches", { method: "POST", body: JSON.stringify(data) }),
-  updateBatch: (id: string, data: any) => request<any>(`/batches/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  deleteBatch: (id: string) => request<any>(`/batches/${id}`, { method: "DELETE" }),
+  createBatch: (data: any) =>
+    request<any>("/batches", { method: "POST", body: JSON.stringify(data) }),
+  updateBatch: (id: string, data: any) =>
+    request<any>(`/batches/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteBatch: (id: string) =>
+    request<any>(`/batches/${id}`, { method: "DELETE" }),
 
   // Tasks
   getTasks: (params?: Record<string, string>) => {
@@ -101,11 +120,17 @@ export const api = {
     return request<any[]>(`/tasks${qs}`);
   },
   getTask: (id: string) => request<any>(`/tasks/${id}`),
-  createTask: (data: any) => request<any>("/tasks", { method: "POST", body: JSON.stringify(data) }),
-  updateTask: (id: string, data: any) => request<any>(`/tasks/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  deleteTask: (id: string) => request<any>(`/tasks/${id}`, { method: "DELETE" }),
+  createTask: (data: any) =>
+    request<any>("/tasks", { method: "POST", body: JSON.stringify(data) }),
+  updateTask: (id: string, data: any) =>
+    request<any>(`/tasks/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteTask: (id: string) =>
+    request<any>(`/tasks/${id}`, { method: "DELETE" }),
   completeTask: (id: string, data: any) =>
-    request<any>(`/tasks/${id}/complete`, { method: "POST", body: JSON.stringify(data) }),
+    request<any>(`/tasks/${id}/complete`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // Activities
   getActivities: (params?: Record<string, string>) => {
@@ -113,42 +138,74 @@ export const api = {
     return request<any[]>(`/activities${qs}`);
   },
   getActivity: (id: string) => request<any>(`/activities/${id}`),
-  createActivity: (data: any) => request<any>("/activities", { method: "POST", body: JSON.stringify(data) }),
-  updateActivity: (id: string, data: any) => request<any>(`/activities/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  deleteActivity: (id: string) => request<any>(`/activities/${id}`, { method: "DELETE" }),
+  createActivity: (data: any) =>
+    request<any>("/activities", { method: "POST", body: JSON.stringify(data) }),
+  updateActivity: (id: string, data: any) =>
+    request<any>(`/activities/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteActivity: (id: string) =>
+    request<any>(`/activities/${id}`, { method: "DELETE" }),
 
   // Harvests
   getHarvests: () => request<any[]>("/harvests"),
   getHarvest: (id: string) => request<any>(`/harvests/${id}`),
   getSuckerHarvests: () => request<any[]>("/harvests?type=sucker"),
   getSuckerHarvest: (id: string) => request<any>(`/harvests/${id}?type=sucker`),
-  createHarvest: (data: any) => request<any>("/harvests", { method: "POST", body: JSON.stringify(data) }),
-  createSuckerHarvest: (data: any) => request<any>("/harvests", { method: "POST", body: JSON.stringify({ ...data, type: "sucker" }) }),
-  updateHarvest: (id: string, data: any) => request<any>(`/harvests/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  updateSuckerHarvest: (id: string, data: any) => request<any>(`/harvests/${id}?type=sucker`, { method: "PUT", body: JSON.stringify(data) }),
-  deleteHarvest: (id: string) => request<any>(`/harvests/${id}`, { method: "DELETE" }),
-  deleteSuckerHarvest: (id: string) => request<any>(`/harvests/${id}?type=sucker`, { method: "DELETE" }),
+  createHarvest: (data: any) =>
+    request<any>("/harvests", { method: "POST", body: JSON.stringify(data) }),
+  createSuckerHarvest: (data: any) =>
+    request<any>("/harvests", {
+      method: "POST",
+      body: JSON.stringify({ ...data, type: "sucker" }),
+    }),
+  updateHarvest: (id: string, data: any) =>
+    request<any>(`/harvests/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  updateSuckerHarvest: (id: string, data: any) =>
+    request<any>(`/harvests/${id}?type=sucker`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteHarvest: (id: string) =>
+    request<any>(`/harvests/${id}`, { method: "DELETE" }),
+  deleteSuckerHarvest: (id: string) =>
+    request<any>(`/harvests/${id}?type=sucker`, { method: "DELETE" }),
 
   // Expenses
   getExpenses: () => request<any[]>("/expenses"),
   getExpense: (id: string) => request<any>(`/expenses/${id}`),
-  createExpense: (data: any) => request<any>("/expenses", { method: "POST", body: JSON.stringify(data) }),
-  updateExpense: (id: string, data: any) => request<any>(`/expenses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-  deleteExpense: (id: string) => request<any>(`/expenses/${id}`, { method: "DELETE" }),
+  createExpense: (data: any) =>
+    request<any>("/expenses", { method: "POST", body: JSON.stringify(data) }),
+  updateExpense: (id: string, data: any) =>
+    request<any>(`/expenses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  deleteExpense: (id: string) =>
+    request<any>(`/expenses/${id}`, { method: "DELETE" }),
 
   // Analytics
   getAnalytics: () => request<any>("/analytics"),
 
   // Notifications
-  getNotifications: (limit = 50) => request<any[]>(`/notifications?limit=${limit}`),
-  markRead: (id: string) => request<any>(`/notifications/${id}/read`, { method: "POST" }),
+  getNotifications: (limit = 50) =>
+    request<any[]>(`/notifications?limit=${limit}`),
+  markRead: (id: string) =>
+    request<any>(`/notifications/${id}/read`, { method: "POST" }),
   markAllRead: () => request<any>("/notifications/read-all", { method: "PUT" }),
-  deleteNotification: (id: string) => request<any>(`/notifications/${id}`, { method: "DELETE" }),
-  deleteAllNotifications: () => request<any>("/notifications/all", { method: "DELETE" }),
+  deleteNotification: (id: string) =>
+    request<any>(`/notifications/${id}`, { method: "DELETE" }),
+  deleteAllNotifications: () =>
+    request<any>("/notifications/all", { method: "DELETE" }),
 
   // Settings
   getSettings: () => request<any>("/settings"),
-  updateSettings: (data: any) => request<any>("/settings", { method: "PUT", body: JSON.stringify(data) }),
+  updateSettings: (data: any) =>
+    request<any>("/settings", { method: "PUT", body: JSON.stringify(data) }),
 
   // Seed
   seed: () => request<any>("/seed", { method: "POST" }),

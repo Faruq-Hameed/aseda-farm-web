@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ASEDA Farm — Farm Management Dashboard
+
+A full-featured Next.js web application for managing farm operations end-to-end. Built for ASEDA to track crop batches through their full lifecycle, log daily activities, manage tasks with calendar scheduling, record harvests and expenses, and visualise revenue trends through analytics charts.
+
+---
+
+## Features
+
+- **Batch Management** — Create and track crop batches from planting date to harvest. Each batch shows plant count, growth status (growing / harvesting / completed), linked tasks, activity logs, and total revenue from harvests.
+- **Dashboard** — Live overview of active batches, total plants, tasks due this week, total revenue, overdue task alerts, batch progress cards, and a monthly revenue chart.
+- **Activity Log** — Record daily farm activities (watering, fertilising, pest control, pruning, etc.) with date, type, and notes per batch.
+- **Task Manager** — Create and assign tasks with due dates, priority levels, and status tracking (pending / in-progress / completed / overdue). View tasks filtered by status.
+- **Harvests** — Log harvest records per batch with quantity, quality grade, revenue, and harvest date. Revenue is aggregated up to the dashboard.
+- **Expenses** — Track farm expenses by category with date and description.
+- **Members** — Team member management for the farm.
+- **Analytics** — Monthly revenue bar charts built with Recharts, activity frequency graphs, and harvest trends over time.
+- **Auth** — Login and registration with protected dashboard routes.
+
+---
+
+## Tech Stack
+
+| Layer       | Technology                                         |
+|-------------|----------------------------------------------------|
+| Framework   | Next.js (App Router) + TypeScript                  |
+| Styling     | Tailwind CSS                                       |
+| Charts      | Recharts                                           |
+| Forms       | React Hook Form + Zod                              |
+| Date Utils  | date-fns, moment                                   |
+| Calendar    | react-big-calendar                                 |
+| Icons       | lucide-react                                       |
+
+---
+
+## Project Structure
+
+```
+aseda-farm/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/           # Login page
+│   │   └── register/        # Registration page
+│   └── (dashboard)/
+│       ├── dashboard/        # Main overview page
+│       ├── batches/          # Batch list + detail + new batch
+│       ├── activities/       # Activity log + new entry
+│       ├── tasks/            # Task list + new task
+│       ├── harvests/         # Harvest records + new harvest
+│       ├── expenses/         # Expense tracker
+│       ├── members/          # Team members
+│       ├── analytics/        # Revenue + activity charts
+│       └── settings/         # App settings
+├── components/
+│   ├── layout/               # Header, sidebar, nav
+│   └── dashboard/            # StatsCards, BatchProgress, Charts, etc.
+└── lib/
+    └── api.ts                # API client for backend calls
+```
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Set the backend API URL in your `.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Pages Overview
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Route             | Description                                      |
+|-------------------|--------------------------------------------------|
+| `/dashboard`      | Overview stats, batch progress, upcoming tasks   |
+| `/batches`        | All batches with task/activity/revenue summary   |
+| `/batches/[id]`   | Batch detail — tasks, activities, harvests       |
+| `/batches/new`    | Create new crop batch                            |
+| `/activities`     | Full activity log with filters                   |
+| `/activities/new` | Log a new farm activity                          |
+| `/tasks`          | Task board — filter by status, overdue alerts    |
+| `/tasks/new`      | Create new task with due date and priority       |
+| `/harvests`       | All harvest records                              |
+| `/harvests/new`   | Record a new harvest                             |
+| `/expenses`       | Expense ledger                                   |
+| `/analytics`      | Revenue and activity charts                      |

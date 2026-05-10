@@ -1,5 +1,11 @@
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { api } from "@/lib/api";
 
 export type MemberRole = "OWNER" | "MANAGER" | "WORKER" | "VIEWER";
@@ -65,11 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const data = await api.login(email, password);
-    localStorage.setItem("aseda_token", data.access_token);
-    localStorage.setItem("aseda_user", JSON.stringify(data.user));
-    setToken(data.access_token);
-    setUser(data.user);
+    try {
+      console.log("Attempting login with email:", email);
+      const data = await api.login(email, password);
+      console.log("Login response:", data);
+      localStorage.setItem("aseda_token", data.access_token);
+      localStorage.setItem("aseda_user", JSON.stringify(data.user));
+      setToken(data.access_token);
+      setUser(data.user);
+    } catch (err) {
+      console.error("Login error in auth-context:", err);
+      throw err;
+    }
   }
 
   async function register(registerData: {
@@ -100,7 +113,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isViewer = user?.role === "VIEWER";
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, isOwnerOrManager, isViewer }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        isOwnerOrManager,
+        isViewer,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
