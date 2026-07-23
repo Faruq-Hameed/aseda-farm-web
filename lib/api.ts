@@ -113,6 +113,7 @@ export const api = {
     }),
   deleteBatch: (id: string) =>
     request<any>(`/batches/${id}`, { method: "DELETE" }),
+  getBatchHistory: (id: string) => request<any[]>(`/batches/${id}/history`),
 
   // Tasks
   getTasks: (params?: Record<string, string>) => {

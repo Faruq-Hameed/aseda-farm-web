@@ -28,6 +28,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
   const [saving, setSaving] = useState(false);
   const [editCustomVariety, setEditCustomVariety] = useState("");
   const [editCustomSpacing, setEditCustomSpacing] = useState("");
+  const [history, setHistory] = useState<any[]>([]);
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") || "tasks";
 
@@ -35,7 +36,16 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     api.getBatch(id).then(setBatch).catch((err: Error) => setLoadError(err.message)).finally(() => setLoading(false));
+    api.getBatchHistory(id).then(setHistory).catch(() => {});
   }, [id]);
+
+  // Earliest recorded plant count, so a reduction/increase from the original is visible at a glance.
+  const originalPlantCount = (() => {
+    const created = history.find((h) => h.action === "create");
+    if (created?.after?.plantCount != null) return created.after.plantCount;
+    const oldest = history[history.length - 1];
+    return oldest?.before?.plantCount ?? batch?.plantCount;
+  })();
 
   function startEdit() {
     const knownVarieties = ["Agbagba","False Horn","French","PITA Hybrid"];
@@ -54,6 +64,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
       notes: batch.notes || "",
       expectedHarvestStart: batch.expectedHarvestStart ? new Date(batch.expectedHarvestStart).toISOString().split("T")[0] : "",
       expectedHarvestEnd: batch.expectedHarvestEnd ? new Date(batch.expectedHarvestEnd).toISOString().split("T")[0] : "",
+      adjustmentReason: "",
     });
     setEditing(true);
   }
@@ -66,6 +77,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
       const updated = await api.updateBatch(id, { ...editForm, variety, spacing });
       setBatch((prev: any) => ({ ...prev, ...updated }));
       setEditing(false);
+      api.getBatchHistory(id).then(setHistory).catch(() => {});
     } catch (e: any) {
       alert(e.message || "Failed to save changes");
       setSaving(false);
@@ -180,6 +192,18 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="text-xs text-gray-500">Plant Count</label>
+                  <input type="number" value={editForm.plantCount} onChange={ef("plantCount")} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                </div>
+                {Number(editForm.plantCount) !== batch.plantCount && (
+                  <div>
+                    <label className="text-xs text-gray-500">Reason for change (optional)</label>
+                    <input value={editForm.adjustmentReason} onChange={ef("adjustmentReason")} className="w-full mt-1 px-3 py-2 border border-amber-300 rounded-lg text-sm bg-amber-50" placeholder="e.g. storm damage, pest loss" />
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs text-gray-500">Expected Harvest Start</label>
                   <input type="date" value={editForm.expectedHarvestStart} onChange={ef("expectedHarvestStart")} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
                 </div>
@@ -200,7 +224,15 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div><p className="text-xs text-gray-500">Plants</p><p className="text-lg font-bold text-gray-900">{batch.plantCount.toLocaleString()}</p></div>
+            <div>
+              <p className="text-xs text-gray-500">Plants</p>
+              <p className="text-lg font-bold text-gray-900">{batch.plantCount.toLocaleString()}</p>
+              {originalPlantCount != null && originalPlantCount !== batch.plantCount && (
+                <p className="text-xs mt-0.5" style={{ color: batch.plantCount < originalPlantCount ? "#B71C1C" : "#1B5E20" }}>
+                  originally {originalPlantCount.toLocaleString()}
+                </p>
+              )}
+            </div>
             <div><p className="text-xs text-gray-500">Planted</p><p className="text-lg font-bold text-gray-900">{formatDate(batch.plantingDate)}</p></div>
             <div><p className="text-xs text-gray-500">Age</p><p className="text-lg font-bold text-gray-900">{months} months</p></div>
             <div><p className="text-xs text-gray-500">Stage</p><p className="text-lg font-bold" style={{ color: "#1B5E20" }}>{stage}</p></div>
@@ -245,7 +277,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
 
         <div>
           <div className="flex gap-1 border-b border-gray-200 mb-4">
-            {["tasks", "activities", "harvests", "suckers"].map((t) => (
+            {["tasks", "activities", "harvests", "suckers", "history"].map((t) => (
               <Link key={t} href={`/batches/${batch.id}?tab=${t}`} className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${tab === t ? "bg-white border border-b-white text-green-700 border-gray-200" : "text-gray-500 hover:text-gray-700"}`}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </Link>
@@ -310,6 +342,30 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === "history" && (
+            <div className="space-y-2">
+              {!history.length ? <p className="text-sm text-gray-400 py-4 text-center">No history recorded yet</p> : history.map((h: any) => {
+                const countChanged = h.before?.plantCount != null && h.after?.plantCount != null && h.before.plantCount !== h.after.plantCount;
+                return (
+                  <div key={h.id} className="bg-white rounded-lg border border-gray-100 p-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 capitalize">{h.action}{h.user?.name ? ` by ${h.user.name}` : ""}</p>
+                        {countChanged && (
+                          <p className="text-xs font-medium mt-0.5" style={{ color: h.after.plantCount < h.before.plantCount ? "#B71C1C" : "#1B5E20" }}>
+                            Plant count: {h.before.plantCount.toLocaleString()} → {h.after.plantCount.toLocaleString()}
+                          </p>
+                        )}
+                        {h.summary && <p className="text-xs text-gray-500 mt-0.5">{h.summary}</p>}
+                      </div>
+                      <p className="text-xs text-gray-500 flex-shrink-0 ml-4">{formatDate(h.createdAt)}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
