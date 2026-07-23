@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { getCrop } from "./crops";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -30,29 +31,34 @@ export function getMonthsSince(date: Date | string): number {
   );
 }
 
-export function getGrowthStage(monthsSincePlanting: number): string {
-  if (monthsSincePlanting < 2) return "Establishment";
-  if (monthsSincePlanting < 4) return "Early Vegetative";
-  if (monthsSincePlanting < 6) return "Rapid Vegetative Growth";
-  if (monthsSincePlanting < 8) return "Pre-Flowering";
-  if (monthsSincePlanting < 10) return "Flowering";
-  if (monthsSincePlanting < 12) return "Bunch Development";
-  if (monthsSincePlanting < 15) return "Harvest Ready";
-  return "Ratoon Stage";
+export function getGrowthStage(monthsSincePlanting: number, cropType?: string): string {
+  const crop = getCrop(cropType);
+  if (monthsSincePlanting >= crop.cycleMonths) {
+    return cropType === "plantain" || !cropType ? "Ratoon Stage" : "Past Harvest";
+  }
+  let stage = crop.stages[0].label;
+  for (const s of crop.stages) {
+    if (monthsSincePlanting >= s.months) stage = s.label;
+  }
+  return stage;
 }
 
-export function getGrowthStageProgress(monthsSincePlanting: number): number {
-  const capped = Math.min(monthsSincePlanting, 15);
-  return Math.round((capped / 15) * 100);
+export function getGrowthStageProgress(monthsSincePlanting: number, cropType?: string): number {
+  const crop = getCrop(cropType);
+  const capped = Math.min(monthsSincePlanting, crop.cycleMonths);
+  return Math.round((capped / crop.cycleMonths) * 100);
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
+  land_prep: "#8D6E63",
+  planting: "#00897B",
   fertilizer: "#2E7D32",
   herbicide: "#6A1B9A",
   weeding: "#1565C0",
   propping: "#F9A825",
   sucker_harvest: "#E65100",
   bunch_harvest: "#B71C1C",
+  harvest: "#B71C1C",
   gouging: "#4E342E",
   inspection: "#616161",
   pest_control: "#AD1457",
@@ -60,12 +66,15 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
+  land_prep: "Land Prep",
+  planting: "Planting",
   fertilizer: "Fertilizer",
   herbicide: "Herbicide",
   weeding: "Weeding",
   propping: "Propping",
   sucker_harvest: "Sucker Harvest",
   bunch_harvest: "Bunch Harvest",
+  harvest: "Harvest",
   gouging: "Gouging",
   inspection: "Inspection",
   pest_control: "Pest Control",

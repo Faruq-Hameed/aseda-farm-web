@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { api } from "@/lib/api";
+import { getHarvestUnit } from "@/lib/crops";
 
 export default function NewHarvestPage() {
   const searchParams = useSearchParams();
-  const [batches, setBatches] = useState<{ id: string; name: string }[]>([]);
+  const [batches, setBatches] = useState<{ id: string; name: string; cropType?: string }[]>([]);
   const [tab, setTab] = useState(searchParams.get("type") === "sucker" ? "sucker" : "bunch");
   const [form, setForm] = useState({
     harvestDate: new Date().toISOString().split("T")[0],
@@ -22,6 +23,14 @@ export default function NewHarvestPage() {
   useEffect(() => {
     api.getBatches().then(setBatches).catch(console.error);
   }, []);
+
+  const selectedBatch = batches.find((b) => b.id === form.batchId);
+  const unit = getHarvestUnit(selectedBatch?.cropType);
+  const isPlantain = !selectedBatch || selectedBatch.cropType === "plantain" || !selectedBatch.cropType;
+
+  useEffect(() => {
+    if (!isPlantain && tab === "sucker") setTab("bunch");
+  }, [isPlantain, tab]);
 
   const bunchCount = parseInt(form.bunchCount) || 0;
   const pricePerBunch = parseFloat(form.pricePerBunch) || 0;
@@ -52,11 +61,13 @@ export default function NewHarvestPage() {
       <div className="p-6 max-w-2xl">
         <div className="flex gap-2 mb-4">
           <button onClick={() => setTab("bunch")} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "bunch" ? "text-white" : "bg-gray-100 text-gray-600"}`} style={tab === "bunch" ? { background: "#1B5E20" } : {}}>
-            🌾 Bunch Harvest
+            🌾 {unit.unit} Harvest
           </button>
-          <button onClick={() => setTab("sucker")} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "sucker" ? "text-white" : "bg-gray-100 text-gray-600"}`} style={tab === "sucker" ? { background: "#E65100" } : {}}>
-            🌱 Sucker Harvest
-          </button>
+          {isPlantain && (
+            <button onClick={() => setTab("sucker")} className={`px-4 py-2 rounded-lg text-sm font-medium ${tab === "sucker" ? "text-white" : "bg-gray-100 text-gray-600"}`} style={tab === "sucker" ? { background: "#E65100" } : {}}>
+              🌱 Sucker Harvest
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
@@ -78,17 +89,17 @@ export default function NewHarvestPage() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bunches Harvested *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{unit.unitPlural} Harvested *</label>
                   <input required type="number" value={form.bunchCount} onChange={f("bunchCount")} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Avg Bunch Weight (kg)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Avg {unit.unit} Weight (kg)</label>
                   <input type="number" step="0.1" value={form.avgBunchWeight} onChange={f("avgBunchWeight")} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="12.5" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price per Bunch (N)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price per {unit.unit} (N)</label>
                   <input type="number" value={form.pricePerBunch} onChange={f("pricePerBunch")} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="1500" />
                 </div>
                 <div>

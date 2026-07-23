@@ -1,23 +1,13 @@
 "use client";
 import { useState, useEffect, use } from "react";
 import { Header } from "@/components/layout/Header";
-import { getMonthsSince, getGrowthStage, formatDate, formatNaira, CATEGORY_COLORS } from "@/lib/utils";
+import { getMonthsSince, getGrowthStage, getGrowthStageProgress, formatDate, formatNaira, CATEGORY_COLORS } from "@/lib/utils";
+import { getCrop, getHarvestUnit } from "@/lib/crops";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-const GROWTH_STAGES = [
-  { label: "Establishment", months: 0 },
-  { label: "Early Vegetative", months: 2 },
-  { label: "Rapid Growth", months: 4 },
-  { label: "Pre-Flowering", months: 6 },
-  { label: "Flowering", months: 8 },
-  { label: "Bunch Dev.", months: 10 },
-  { label: "Harvest Ready", months: 12 },
-];
-
 const STATUSES = ["growing","flowering","harvesting","completed","planned"];
-const VARIETIES = ["Agbagba","False Horn","French","PITA Hybrid","Other"];
 
 export default function BatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -48,10 +38,9 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
   })();
 
   function startEdit() {
-    const knownVarieties = ["Agbagba","False Horn","French","PITA Hybrid"];
-    const knownSpacings = ["3m x 2m","2.5m x 2.5m","3m x 3m"];
-    const isKnownVariety = knownVarieties.includes(batch.variety);
-    const isKnownSpacing = knownSpacings.includes(batch.spacing);
+    const crop = getCrop(batch.cropType);
+    const isKnownVariety = crop.varieties.includes(batch.variety) && batch.variety !== "Other";
+    const isKnownSpacing = crop.spacingOptions.includes(batch.spacing);
     setEditCustomVariety(isKnownVariety ? "" : batch.variety);
     setEditCustomSpacing(isKnownSpacing ? "" : batch.spacing);
     setEditForm({
@@ -115,10 +104,16 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
+  const crop = getCrop(batch.cropType);
+  const harvestUnit = getHarvestUnit(batch.cropType);
   const months = getMonthsSince(batch.plantingDate);
-  const stage = getGrowthStage(months);
+  const stage = getGrowthStage(months, batch.cropType);
+  const progress = getGrowthStageProgress(months, batch.cropType);
   const totalRevenue = batch.harvests?.reduce((sum: number, h: any) => sum + (h.totalRevenue || 0), 0) || 0;
   const totalBunches = batch.harvests?.reduce((sum: number, h: any) => sum + h.bunchCount, 0) || 0;
+  const tabs = batch.cropType === "plantain" || !batch.cropType
+    ? ["tasks", "activities", "harvests", "suckers", "history"]
+    : ["tasks", "activities", "harvests", "history"];
 
   return (
     <div>
@@ -127,8 +122,8 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{batch.name}</h2>
-              <p className="text-gray-500 text-sm mt-1">{batch.variety} • {batch.spacing} • {batch.acresCovered} acres</p>
+              <h2 className="text-2xl font-bold text-gray-900">{crop.emoji} {batch.name}</h2>
+              <p className="text-gray-500 text-sm mt-1">{crop.label} • {batch.variety} • {batch.spacing} • {batch.acresCovered} acres</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-3 py-1.5 rounded-full text-white text-sm font-medium" style={{ background: batch.status === "growing" ? "#2E7D32" : batch.status === "harvesting" ? "#F57F17" : "#616161" }}>
@@ -157,7 +152,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
                 <div>
                   <label className="text-xs text-gray-500">Variety</label>
                   <select value={editForm.variety} onChange={ef("variety")} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
-                    {VARIETIES.map((v) => <option key={v} value={v}>{v}</option>)}
+                    {crop.varieties.map((v) => <option key={v} value={v}>{v}</option>)}
                   </select>
                   {editForm.variety === "Other" && (
                     <input
@@ -171,9 +166,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
                 <div>
                   <label className="text-xs text-gray-500">Spacing</label>
                   <select value={editForm.spacing} onChange={ef("spacing")} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
-                    <option value="3m x 2m">3m x 2m</option>
-                    <option value="2.5m x 2.5m">2.5m x 2.5m</option>
-                    <option value="3m x 3m">3m x 3m</option>
+                    {crop.spacingOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                     <option value="custom">Custom…</option>
                   </select>
                   {editForm.spacing === "custom" && (
@@ -242,11 +235,11 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
             <p className="text-xs font-medium text-gray-500 mb-3">Growth Timeline</p>
             <div className="relative">
               <div className="flex justify-between mb-1">
-                {GROWTH_STAGES.map((s, i) => {
-                  const isCurrent = stage === s.label || (i === 0 && months < 2);
-                  const isPast = months >= s.months + 2;
+                {crop.stages.map((s, i) => {
+                  const isCurrent = stage === s.label;
+                  const isPast = months >= s.months && !isCurrent;
                   return (
-                    <div key={s.label} className="flex flex-col items-center" style={{ width: `${100 / GROWTH_STAGES.length}%` }}>
+                    <div key={s.label} className="flex flex-col items-center" style={{ width: `${100 / crop.stages.length}%` }}>
                       <div className={`w-3 h-3 rounded-full border-2 z-10 ${isPast ? "bg-green-600 border-green-600" : isCurrent ? "bg-green-400 border-green-600" : "bg-white border-gray-300"}`} />
                       <p className={`text-xs mt-1 text-center leading-tight ${isCurrent ? "font-bold text-green-700" : "text-gray-400"}`} style={{ fontSize: "9px" }}>{s.label}</p>
                     </div>
@@ -254,7 +247,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
                 })}
               </div>
               <div className="absolute top-1.5 left-0 right-0 h-0.5 bg-gray-200 -z-0">
-                <div className="h-full bg-green-600 rounded" style={{ width: `${Math.min(months / 14 * 100, 100)}%` }} />
+                <div className="h-full bg-green-600 rounded" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
@@ -267,7 +260,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
           </div>
           <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900">{totalBunches}</p>
-            <p className="text-xs text-gray-500 mt-1">Bunches Harvested</p>
+            <p className="text-xs text-gray-500 mt-1">{harvestUnit.unitPlural} Harvested</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
             <p className="text-2xl font-bold text-gray-900">{batch.tasks?.filter((t: any) => t.status === "completed").length || 0}</p>
@@ -277,7 +270,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
 
         <div>
           <div className="flex gap-1 border-b border-gray-200 mb-4">
-            {["tasks", "activities", "harvests", "suckers", "history"].map((t) => (
+            {tabs.map((t) => (
               <Link key={t} href={`/batches/${batch.id}?tab=${t}`} className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${tab === t ? "bg-white border border-b-white text-green-700 border-gray-200" : "text-gray-500 hover:text-gray-700"}`}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </Link>
@@ -333,7 +326,7 @@ export default function BatchDetailPage({ params }: { params: Promise<{ id: stri
                 <div key={harvest.id} className="bg-white rounded-lg border border-gray-100 p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">{harvest.bunchCount} bunches</p>
+                      <p className="font-medium text-gray-900">{harvest.bunchCount} {harvestUnit.unitPlural.toLowerCase()}</p>
                       <p className="text-xs text-gray-500">{formatDate(harvest.harvestDate)} • {harvest.channel || "—"}</p>
                     </div>
                     <div className="text-right">

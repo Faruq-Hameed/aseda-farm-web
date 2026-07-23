@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { formatDate, formatNaira } from "@/lib/utils";
+import { getHarvestUnit } from "@/lib/crops";
 import { api } from "@/lib/api";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -219,13 +220,13 @@ export default function HarvestsPage() {
                     <>
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="font-semibold text-gray-900">{harvest.bunchCount} bunches — {harvest.batch?.name}</p>
+                          <p className="font-semibold text-gray-900">{harvest.bunchCount} {getHarvestUnit(harvest.batch?.cropType).unitPlural.toLowerCase()} — {harvest.batch?.name}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{formatDate(harvest.harvestDate)} • {CHANNEL_LABELS[harvest.channel] || harvest.channel || "—"}</p>
                           {harvest.buyer && <p className="text-xs text-gray-400">Buyer: {harvest.buyer}</p>}
                           <div className="flex gap-4 mt-2 text-xs text-gray-500">
                             {harvest.avgBunchWeight && <span>Avg weight: {harvest.avgBunchWeight}kg</span>}
                             {harvest.totalWeight && <span>Total: {harvest.totalWeight}kg</span>}
-                            {harvest.pricePerBunch && <span>N{harvest.pricePerBunch.toLocaleString()}/bunch</span>}
+                            {harvest.pricePerBunch && <span>N{harvest.pricePerBunch.toLocaleString()}/{getHarvestUnit(harvest.batch?.cropType).unit.toLowerCase()}</span>}
                           </div>
                         </div>
                         {harvest.totalRevenue && <p className="text-xl font-bold" style={{ color: "#1B5E20" }}>{formatNaira(harvest.totalRevenue)}</p>}

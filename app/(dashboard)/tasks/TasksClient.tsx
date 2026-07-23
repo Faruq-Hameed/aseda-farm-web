@@ -19,8 +19,8 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 const CATEGORIES = [
-  "fertilizer","herbicide","weeding","propping","sucker_harvest",
-  "bunch_harvest","gouging","inspection","pest_control","other",
+  "land_prep","planting","fertilizer","herbicide","weeding","propping","sucker_harvest",
+  "bunch_harvest","harvest","gouging","inspection","pest_control","other",
 ];
 
 interface Task {
