@@ -20,8 +20,6 @@ interface Props {
   channelData: { name: string; value: number }[];
   expenseData: { name: string; value: number }[];
   taskStatus: { completed: number; overdue: number; pending: number; in_progress: number };
-  totalRevenue: number;
-  totalExpenses: number;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
